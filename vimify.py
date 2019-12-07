@@ -3,7 +3,6 @@ Vimification of an linux environment
 
 wget -O - https://raw.github.com/imbolc/vimify/master/vimify.py | python3
 """
-import os
 from pathlib import Path
 
 UPDATES = [
@@ -17,12 +16,8 @@ UPDATES = [
         ],
     ],
     ["~/.inputrc", ["set editing-mode vi"]],
-    [
-        "~/.ipython/profile_default/ipython_config.py",
-        ["c.TerminalInteractiveShell.editing_mode = 'vi'"],
-    ],
 ]
-BASE_VIM_CONFIG = """
+VIM_CONFIG = """
 set nocompatible
 let mapleader=","
 
@@ -94,36 +89,6 @@ def update_files():
                     f.write(update + "\n")
 
 
-def is_pip_installed():
-    return not os.system("pip3 -V > /dev/null")
-
-
-def install_pip():
-    if is_pip_installed():
-        return True
-    cmd = "apt install -y python3-pip > /dev/null"
-    if am_i_root():
-        if not os.system(cmd):
-            return True
-    if has_sudo_access():
-        if not os.system("sudo " + cmd):
-            return True
-
-
-def is_ipython_installed():
-    return not os.system("ipython -V > /dev/null")
-
-
-def install_ipython():
-    if not install_pip():
-        print("can't install pip")
-        return
-    if not is_ipython_installed():
-        print("installing ipython")
-        os.system("pip3 install ipython > /dev/null")
-    os.system("python3 -m IPython profile create > /dev/null")
-
-
 def is_vim_config_exists():
     paths = ["~/.vimrc", "~/.config/nvim"]
     for path in paths:
@@ -131,37 +96,18 @@ def is_vim_config_exists():
             return True
 
 
-def add_base_vim_config():
+def create_vim_config():
     if is_vim_config_exists():
         return
     print("creating a base vim config")
     path = Path("~/.vimrc").expanduser()
     with path.open("w") as f:
-        f.write(BASE_VIM_CONFIG)
+        f.write(VIM_CONFIG)
     nvim = Path("~/.config/nvim/init.vim").expanduser()
     nvim.parent.mkdir(parents=True, exist_ok=True)
     nvim.symlink_to(path)
 
 
-def has_sudo_access():
-    if am_i_root():
-        return False
-    return not os.system("sudo -n ls > /dev/null")
-
-
-def am_i_root():
-    return os.geteuid() == 0
-
-
-def run_as_root():
-    if not has_sudo_access():
-        return
-    path = Path(__file__).resolve()
-    os.system("sudo python3 {} > /dev/null".format(path))
-
-
 if __name__ == "__main__":
-    install_ipython()
     update_files()
-    add_base_vim_config()
-    run_as_root()
+    create_vim_config()
